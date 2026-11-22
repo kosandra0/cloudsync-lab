@@ -2,7 +2,9 @@
 const SUPABASE_URL = "https://rrlfnghoxocplelqigdc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_j1cAUpJiW1hqJcKDD9Kk7Q_0jOaV7o6";
 const client = window.supabase && typeof window.supabase.createClient === "function"
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { experimental: { passkey: true } }
+    })
   : null;
 const $ = (id) => document.getElementById(id);
 let mode = "signin", currentUser = null, editingId = null, channel = null, toastTimer;
@@ -21,6 +23,31 @@ function setMode(next) {
   $("password").autocomplete = mode === "signin" ? "current-password" : "new-password";
 }
 $("switchMode").addEventListener("click", () => setMode(mode === "signin" ? "signup" : "signin"));
+
+const passkeySignInButton = $("passkeySignIn");
+if (passkeySignInButton) {
+  passkeySignInButton.addEventListener("click", async () => {
+    if (!client) return toast("Supabase is unavailable. Refresh the page and try again.");
+    if (!window.isSecureContext || !navigator.credentials) {
+      return toast("Passkeys require a supported browser on this HTTPS website.");
+    }
+    passkeySignInButton.disabled = true;
+    passkeySignInButton.textContent = "Waiting for your passkey…";
+    try {
+      const { data, error } = await client.auth.signInWithPasskey();
+      if (error) throw error;
+      if (data?.user) toast("Signed in with your passkey.");
+    } catch (e) {
+      const message = e.name === "NotAllowedError"
+        ? "Passkey sign-in was cancelled or no matching passkey was selected."
+        : (e.message || "Passkey sign-in failed.");
+      toast(message);
+    } finally {
+      passkeySignInButton.disabled = false;
+      passkeySignInButton.innerHTML = '<span class="passkey-symbol" aria-hidden="true">⌘</span><span>Sign in with a passkey</span>';
+    }
+  });
+}
 
 const googleSignInButton = $("googleSignIn");
 const googleButtonMarkup = googleSignInButton ? googleSignInButton.innerHTML : "";
@@ -74,6 +101,30 @@ $("signOut").addEventListener("click", async () => {
   const { error } = await client.auth.signOut(); if (error) toast(error.message);
 });
 $("refreshNotes").addEventListener("click", loadNotes);
+
+$("addPasskey").addEventListener("click", async () => {
+  if (!client || !currentUser) return toast("Sign in before registering a passkey.");
+  if (!window.isSecureContext || !navigator.credentials) {
+    return toast("Passkeys require a compatible browser on this HTTPS website.");
+  }
+  const button = $("addPasskey");
+  button.disabled = true;
+  button.textContent = "Waiting for your device…";
+  try {
+    const { data, error } = await client.auth.registerPasskey();
+    if (error) throw error;
+    toast("Passkey registered successfully.");
+    await loadPasskeys();
+  } catch (e) {
+    const message = e.name === "NotAllowedError"
+      ? "Passkey setup was cancelled or timed out. You can try again."
+      : (e.message || "Could not register this passkey.");
+    toast(message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "＋ Register a passkey";
+  }
+});
 $("cancelEdit").addEventListener("click", resetEditor);
 $("noteForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -96,6 +147,49 @@ function resetEditor() {
 }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 function dateLabel(s) { return new Intl.DateTimeFormat(undefined,{dateStyle:"medium",timeStyle:"short"}).format(new Date(s)); }
+
+async function loadPasskeys() {
+  const list = $("passkeyList");
+  if (!list || !client || !currentUser) return;
+  list.innerHTML = '<span class="muted-small">Loading passkeys…</span>';
+  try {
+    const { data, error } = await client.auth.passkey.list();
+    if (error) throw error;
+    const passkeys = Array.isArray(data) ? data : (data?.passkeys || []);
+    if (!passkeys.length) {
+      list.innerHTML = '<span class="muted-small">No passkeys registered yet. Register one on this device to enable passwordless sign-in.</span>';
+      return;
+    }
+    list.innerHTML = passkeys.map((item) => {
+      const name = item.friendly_name || "Passkey";
+      const created = item.created_at ? "Added " + dateLabel(item.created_at) : "Registered passkey";
+      const lastUsed = item.last_used_at ? " · Last used " + dateLabel(item.last_used_at) : "";
+      return '<div class="passkey-item">' +
+        '<span class="passkey-item-icon" aria-hidden="true">⌘</span>' +
+        '<span class="passkey-item-info"><b>' + esc(name) + '</b><small>' + esc(created + lastUsed) + '</small></span>' +
+        '<button class="passkey-remove" type="button" data-remove-passkey="' + esc(item.id) + '">Remove</button>' +
+      '</div>';
+    }).join("");
+    list.querySelectorAll("[data-remove-passkey]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = button.dataset.removePasskey;
+        if (!id || !confirm("Remove this passkey from your account? This device may no longer be able to sign in with it.")) return;
+        button.disabled = true;
+        try {
+          const { error } = await client.auth.passkey.delete({ passkeyId: id });
+          if (error) throw error;
+          toast("Passkey removed from your account.");
+          await loadPasskeys();
+        } catch (e) {
+          toast(e.message || "Could not remove this passkey.");
+          button.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    list.innerHTML = '<span class="muted-small">Could not load passkeys: ' + esc(e.message || "Unknown error") + '</span>';
+  }
+}
 async function loadNotes() {
   if (!client || !currentUser) return;
   $("syncLabel").textContent = "Syncing…";
@@ -121,6 +215,7 @@ function signedIn(user) {
   currentUser = user; $("authView").classList.add("hidden"); $("appView").classList.remove("hidden");
   $("accountEmail").textContent = user.email || "Signed-in user"; $("avatar").textContent = (user.email || "U")[0].toUpperCase();
   loadNotes();
+  loadPasskeys();
   if (channel) client.removeChannel(channel);
   channel = client.channel("notes-"+user.id).on("postgres_changes",{event:"*",schema:"public",table:"cloud_notes",filter:"user_id=eq."+user.id},loadNotes).subscribe();
 }
