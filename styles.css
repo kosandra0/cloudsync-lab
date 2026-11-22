@@ -73,3 +73,38 @@
 .field-select{width:100%;padding:12px;border-radius:9px;border:1px solid var(--line);background:#080d14;color:var(--text);font:12px "DM Sans"}
 .mfa-signout{width:100%;margin-top:12px}
 @media(max-width:760px){.welcome-actions{gap:6px}.welcome-actions .quiet{padding:9px 10px}.settings-panel{padding:16px}.settings-grid{grid-template-columns:1fr}.setting-card>p{min-height:0}.settings-header h2{font-size:18px}}
+
+
+/* Discord OAuth button */
+.discord-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid #5865f2;
+  border-radius: 10px;
+  background: #5865f2;
+  color: #ffffff;
+  font: 600 12px "DM Sans", sans-serif;
+  cursor: pointer;
+  transition: background .18s, transform .18s;
+}
+
+.discord-btn:hover {
+  background: #4752c4;
+  transform: translateY(-1px);
+}
+
+.discord-btn:disabled {
+  opacity: .6;
+  cursor: wait;
+  transform: none;
+}
+
+.discord-btn:focus-visible {
+  outline: 3px solid #8ed7bd88;
+  outline-offset: 3px;
+}
