@@ -7,3 +7,25 @@
 .google-btn:hover{background:#f7f8f8;box-shadow:0 2px 8px #0002;transform:translateY(-1px)}
 .google-btn:focus-visible{outline:3px solid #8ed7bd88;outline-offset:3px}
 .google-btn:disabled{opacity:.65;cursor:wait;transform:none;box-shadow:none}
+
+/* Passkey controls */
+.passkey-btn{width:100%;min-height:43px;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;color:var(--text);font:600 12px "DM Sans",sans-serif;cursor:pointer;transition:background .18s,border-color .18s}
+.passkey-btn:hover{background:#ffffff10;border-color:#8ed7bd66}
+.passkey-btn:disabled{opacity:.55;cursor:wait}
+.passkey-symbol{display:grid;place-items:center;width:20px;height:20px;border:1px solid #8ed7bd66;border-radius:6px;color:var(--mint);font-size:14px}
+.passkey-panel{margin:0 0 20px;padding:20px 22px;display:grid;grid-template-columns:.95fr 1.05fr;gap:20px;align-items:center}
+.passkey-copy h2{font:700 17px Manrope;margin:8px 0 5px}
+.passkey-copy p{max-width:460px;color:var(--muted);font-size:11px;line-height:1.65;margin:0 0 14px}
+.passkey-add{display:inline-flex;min-width:175px;justify-content:center}
+.passkey-manage{border-left:1px solid var(--line);padding-left:20px;min-height:84px}
+.passkey-list-heading{font-size:10px;letter-spacing:.7px;color:#c9d4df;font-weight:700;margin:2px 0 9px}
+.passkey-list{display:grid;gap:8px}
+.passkey-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#ffffff05}
+.passkey-item-icon{width:28px;height:28px;border-radius:8px;background:#8ed7bd12;color:var(--mint);display:grid;place-items:center;flex:0 0 28px}
+.passkey-item-info{min-width:0;flex:1}
+.passkey-item-info b,.passkey-item-info small{display:block;overflow-wrap:anywhere}
+.passkey-item-info b{font-size:10px;font-weight:600}
+.passkey-item-info small{font-size:9px;color:var(--muted);margin-top:3px}
+.passkey-remove{border:0;background:none;color:#e69a9a;font:600 10px "DM Sans";cursor:pointer;padding:6px}
+.muted-small{font-size:10px;color:var(--muted)}
+@media(max-width:760px){.passkey-panel{grid-template-columns:1fr;padding:18px}.passkey-manage{border-left:0;border-top:1px solid var(--line);padding:15px 0 0}.passkey-add{width:100%}}
