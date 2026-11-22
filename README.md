@@ -77,3 +77,29 @@ CloudSync Lab includes Supabase Passkey support (currently experimental in `supa
 Passkeys are device/authenticator credentials, not passwords stored in this app. The app never receives a user's fingerprint, face scan, or device PIN.
 
 See the [Supabase Passkey documentation](https://supabase.com/docs/guides/auth/passkeys) for current API status and browser requirements.
+
+
+## Account security settings
+
+After signing in, open **Settings** to manage two different security options:
+
+### Passkeys (passwordless sign-in)
+
+- Register a passkey while signed in with a confirmed account.
+- Use Windows Hello, a phone/password manager, or a compatible security key.
+- Sign in with a saved passkey from the login screen.
+- Passkeys are an alternative sign-in method; they are not an extra factor after password login.
+
+On Windows, configure **Settings → Accounts → Sign-in options → PIN (Windows Hello)** before registering a local Windows Hello passkey. If Chrome only asks for a USB security key, cancel unless you own a FIDO2 security key.
+
+### Authenticator app (actual second factor)
+
+- Open **Settings → Authenticator app (2FA)**.
+- Scan the QR code using an authenticator app such as Google Authenticator, Microsoft Authenticator, 1Password, or another TOTP app.
+- Enter the current six-digit code to verify and activate the factor.
+- On later email/password or Google sign-ins, CloudSync Lab asks for an authenticator code before showing private notes.
+- Register a backup authenticator factor if possible. Supabase does not provide recovery codes for this flow.
+
+The `cloud_notes` table also has a restrictive RLS policy: users with a verified MFA factor need an `aal2` token to read or modify notes. Accounts that have not opted into MFA continue to use their normal `aal1` session.
+
+TOTP MFA is provided by Supabase Auth and does not require an SMS provider. Phone/SMS MFA remains disabled in this experiment.
