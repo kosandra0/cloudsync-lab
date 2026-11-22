@@ -216,219 +216,307 @@ function openSettings() {
 // CONNECTED ACCOUNT MANAGEMENT
 // ======================================
 
-const connectGoogleIdentityButton =
-  $("connectGoogleIdentity");
+const connectGoogleIdentityButton = $("connectGoogleIdentity");
+const connectDiscordIdentityButton = $("connectDiscordIdentity");
+const refreshConnectedIdentitiesButton = $("refreshConnectedIdentities");
+const connectedIdentityStatus = $("connectedIdentityStatus");
+const noMoreProvidersMessage = $("noMoreProviders");
 
-const connectDiscordIdentityButton =
-  $("connectDiscordIdentity");
+const identityProviderInfo = {
+  google: {
+    label: "Google",
+    logo: `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.91c-.58 2.96-2.26 5.47-4.76 7.16l7.73 6C44.39 37.8 46.98 31.7 46.98 24.55z"/>
+      <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.88-5.82l-7.73-6c-2.14 1.44-4.89 2.3-8.15 2.3-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>`
+  },
+  discord: {
+    label: "Discord",
+    logo: `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M19.73 5.34A19.4 19.4 0 0 0 14.9 3.85l-.59 1.2a18 18 0 0 0-4.62 0l-.6-1.2a19.3 19.3 0 0 0-4.83 1.49C1.2 9.86.37 14.29.78 18.65a19.5 19.5 0 0 0 5.92 2.99l1.28-2.09a12.6 12.6 0 0 1-2.02-.97l.5-.39a13.9 13.9 0 0 0 13.08 0l.5.39c-.65.39-1.33.72-2.03.97l1.28 2.09a19.5 19.5 0 0 0 5.92-2.99c.49-5.06-.84-9.45-3.48-13.31ZM8.73 15.51c-1.14 0-2.08-1.05-2.08-2.34s.92-2.34 2.08-2.34 2.1 1.06 2.08 2.34c0 1.29-.92 2.34-2.08 2.34Zm6.54 0c-1.14 0-2.08-1.05-2.08-2.34s.92-2.34 2.08-2.34 2.1 1.06 2.08 2.34c0 1.29-.91 2.34-2.08 2.34Z"/>
+    </svg>`
+  }
+};
 
+function withIdentityTimeout(promise, milliseconds = 7000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(
+        () => reject(new Error("The identity service took too long to respond.")),
+        milliseconds
+      );
+    })
+  ]);
+}
+
+function normalizeIdentities(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.identities)) return value.identities;
+  return null;
+}
+
+async function fetchCurrentIdentities() {
+  if (!client || !currentUser) {
+    throw new Error("Sign in again to view connected accounts.");
+  }
+
+  let lastError = null;
+
+  // Preferred endpoint: returns the identities attached to the current user.
+  if (typeof client.auth.getUserIdentities === "function") {
+    try {
+      const result = await withIdentityTimeout(
+        client.auth.getUserIdentities()
+      );
+      if (result.error) throw result.error;
+
+      const identities = normalizeIdentities(result.data);
+      if (identities) return identities;
+    } catch (error) {
+      lastError = error;
+      console.warn("getUserIdentities failed; trying the current-user response.", error);
+    }
+  }
+
+  // Fallback: fetch the authenticated user from Supabase Auth.
+  try {
+    const result = await withIdentityTimeout(client.auth.getUser(), 6000);
+    if (result.error) throw result.error;
+
+    const user = result.data?.user;
+    if (!user || user.id !== currentUser.id) {
+      throw new Error("The signed-in account changed. Please sign in again.");
+    }
+
+    const identities = normalizeIdentities(user.identities);
+    if (identities) return identities;
+  } catch (error) {
+    lastError = error;
+  }
+
+  // Last-resort fallback: use identities included in the active auth session.
+  const sessionIdentities = normalizeIdentities(currentUser.identities);
+  if (sessionIdentities) return sessionIdentities;
+
+  throw lastError || new Error("Supabase did not return the connected identity list.");
+}
+
+function renderConnectedIdentities(identities) {
+  const list = $("connectedIdentityList");
+  if (!list) return;
+
+  const providers = identities.filter(identity =>
+    Object.prototype.hasOwnProperty.call(identityProviderInfo, identity.provider)
+  );
+
+  const uniqueProviders = [];
+  const seen = new Set();
+  for (const identity of providers) {
+    if (!seen.has(identity.provider)) {
+      seen.add(identity.provider);
+      uniqueProviders.push(identity);
+    }
+  }
+
+  if (!uniqueProviders.length) {
+    list.innerHTML = '<div class="muted-small">No Google or Discord accounts are connected yet.</div>';
+  } else {
+    list.innerHTML = uniqueProviders.map(identity => {
+      const info = identityProviderInfo[identity.provider];
+      const details = identity.identity_data || {};
+      const accountLabel =
+        details.email ||
+        details.full_name ||
+        details.name ||
+        details.username ||
+        "Provider account linked";
+
+      return `
+        <div class="connected-identity-item">
+          <span class="connected-identity-icon ${esc(identity.provider)}">
+            ${info.logo}
+          </span>
+          <div class="connected-identity-details">
+            <strong>${info.label}</strong>
+            <small>${esc(accountLabel)}</small>
+          </div>
+          <span class="identity-connected">Connected</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  const linked = new Set(uniqueProviders.map(identity => identity.provider));
+  const googleLinked = linked.has("google");
+  const discordLinked = linked.has("discord");
+
+  if (connectGoogleIdentityButton) {
+    connectGoogleIdentityButton.classList.toggle("hidden", googleLinked);
+    connectGoogleIdentityButton.disabled = false;
+    connectGoogleIdentityButton.innerHTML =
+      identityProviderInfo.google.logo +
+      '<span>Connect Google</span><span class="identity-button-arrow" aria-hidden="true">→</span>';
+  }
+
+  if (connectDiscordIdentityButton) {
+    connectDiscordIdentityButton.classList.toggle("hidden", discordLinked);
+    connectDiscordIdentityButton.disabled = false;
+    connectDiscordIdentityButton.innerHTML =
+      identityProviderInfo.discord.logo +
+      '<span>Connect Discord</span><span class="identity-button-arrow" aria-hidden="true">→</span>';
+  }
+
+  const noMoreAvailable = googleLinked && discordLinked;
+  if (noMoreProvidersMessage) {
+    noMoreProvidersMessage.classList.toggle("hidden", !noMoreAvailable);
+  }
+}
 
 async function loadConnectedIdentities() {
   const list = $("connectedIdentityList");
-
   if (!client || !currentUser || !list) return;
 
-  list.innerHTML =
-    '<span class="muted-small">Loading accounts...</span>';
+  const cachedIdentities = normalizeIdentities(currentUser.identities);
+
+  // Render session identities immediately when available, so the UI never
+  // remains stuck on a loading placeholder while the server refreshes.
+  if (cachedIdentities) {
+    renderConnectedIdentities(cachedIdentities);
+    if (connectedIdentityStatus) {
+      connectedIdentityStatus.className = "identity-status";
+      connectedIdentityStatus.textContent = "Refreshing provider information…";
+    }
+  } else {
+    if (connectedIdentityStatus) {
+      connectedIdentityStatus.className = "identity-status";
+      connectedIdentityStatus.textContent = "Checking your connected accounts…";
+    }
+    list.innerHTML = "";
+    if (connectGoogleIdentityButton) connectGoogleIdentityButton.disabled = true;
+    if (connectDiscordIdentityButton) connectDiscordIdentityButton.disabled = true;
+  }
+
+  if (refreshConnectedIdentitiesButton) {
+    refreshConnectedIdentitiesButton.disabled = true;
+    refreshConnectedIdentitiesButton.textContent = "Refreshing…";
+  }
 
   try {
-    const { data, error } =
-      await client.auth.getUserIdentities();
+    const identities = await fetchCurrentIdentities();
+    renderConnectedIdentities(identities);
 
-    if (error) throw error;
-
-    const identities = data?.identities || [];
-
-    const providers = identities.filter(identity =>
-      ["google", "discord"].includes(identity.provider)
-    );
-
-    const providerInfo = {
-      google: {
-        label: "Google",
-        icon: "G"
-      },
-      discord: {
-        label: "Discord",
-        icon: "D"
-      }
-    };
-
-    if (!providers.length) {
-      list.innerHTML =
-        '<span class="muted-small">No social accounts connected yet.</span>';
-    } else {
-      list.innerHTML = providers.map(identity => {
-        const info = providerInfo[identity.provider];
-        const email = identity.identity_data?.email || "";
-
-        return `
-          <div class="connected-identity-item">
-            <span class="connected-identity-icon">
-              ${info.icon}
-            </span>
-
-            <div class="connected-identity-details">
-              <strong>${info.label}</strong>
-              <small>${esc(email || "Connected account")}</small>
-            </div>
-
-            <span class="identity-connected">
-              Connected
-            </span>
-          </div>
-        `;
-      }).join("");
+    if (connectedIdentityStatus) {
+      connectedIdentityStatus.className = "identity-status";
+      connectedIdentityStatus.textContent = "Your connected providers are up to date.";
     }
-
-    const linked = providers.map(item => item.provider);
-
-    updateConnectButton(
-      connectGoogleIdentityButton,
-      "google",
-      linked
-    );
-
-    updateConnectButton(
-      connectDiscordIdentityButton,
-      "discord",
-      linked
-    );
-
   } catch (error) {
-    console.error("Identity loading error:", error);
+    console.error("Connected account refresh failed:", error);
 
-    list.innerHTML =
-      '<span class="muted-small">Could not load connected accounts.</span>';
+    if (cachedIdentities) {
+      renderConnectedIdentities(cachedIdentities);
+      if (connectedIdentityStatus) {
+        connectedIdentityStatus.className = "identity-status";
+        connectedIdentityStatus.textContent =
+          "Showing the identities in your active session. Use Refresh to try the server again.";
+      }
+    } else {
+      if (connectedIdentityStatus) {
+        connectedIdentityStatus.className = "identity-status error";
+        connectedIdentityStatus.textContent =
+          "Could not load connected accounts: " + (error.message || "Unknown error");
+      }
+      list.innerHTML = "";
+      if (connectGoogleIdentityButton) connectGoogleIdentityButton.disabled = true;
+      if (connectDiscordIdentityButton) connectDiscordIdentityButton.disabled = true;
+    }
+  } finally {
+    if (refreshConnectedIdentitiesButton) {
+      refreshConnectedIdentitiesButton.disabled = false;
+      refreshConnectedIdentitiesButton.textContent = "↻ Refresh";
+    }
   }
 }
 
-
-function updateConnectButton(button, provider, linked) {
-  if (!button) return;
-
-  const alreadyConnected = linked.includes(provider);
-
-  button.disabled = alreadyConnected;
-
-  if (alreadyConnected) {
-    button.textContent =
-      provider === "google"
-        ? "Google Connected"
-        : "Discord Connected";
-  } else {
-    button.textContent =
-      provider === "google"
-        ? "Connect Google"
-        : "Connect Discord";
-  }
-}
-
-
-// Link Google or Discord to the CURRENTLY signed-in user.
 async function connectIdentity(provider, button) {
   if (!client || !currentUser) {
-    return toast("Please sign in first.");
+    return toast("Please sign in before linking another account.");
   }
-
-  if (button.disabled) return;
+  if (!identityProviderInfo[provider] || button.disabled) return;
 
   button.disabled = true;
-  button.textContent = "Connecting...";
+  const originalMarkup = button.innerHTML;
+  button.innerHTML = '<span>Connecting securely…</span>';
 
   try {
-    // Confirm the active account before linking.
     const { data: userData, error: userError } =
-      await client.auth.getUser();
-
+      await withIdentityTimeout(client.auth.getUser(), 7000);
     if (userError) throw userError;
 
-    if (!userData.user ||
-        userData.user.id !== currentUser.id) {
-      throw new Error(
-        "Your active account changed. Please sign in again."
-      );
+    if (!userData.user || userData.user.id !== currentUser.id) {
+      throw new Error("Your active account changed. Please sign in again.");
     }
 
-    // Prevent connecting the same provider twice.
-    const { data, error } =
-      await client.auth.getUserIdentities();
-
-    if (error) throw error;
-
-    const identities = data?.identities || [];
-
-    if (identities.some(i => i.provider === provider)) {
-      toast("This provider is already connected.");
+    const identities = await fetchCurrentIdentities();
+    if (identities.some(identity => identity.provider === provider)) {
       await loadConnectedIdentities();
+      toast("This provider is already connected to this account.");
       return;
     }
 
-    const redirectTo =
-      window.location.origin + window.location.pathname;
-
+    const redirectTo = window.location.origin + window.location.pathname;
     const scopes = provider === "discord"
       ? "identify email"
       : "openid email profile";
 
-    // IMPORTANT:
-    // linkIdentity attaches the provider to the
-    // existing signed-in Supabase user.
-    const { error: linkError } =
-      await client.auth.linkIdentity({
-        provider,
-        options: {
-          redirectTo,
-          scopes
-        }
-      });
+    const { error } = await client.auth.linkIdentity({
+      provider,
+      options: { redirectTo, scopes }
+    });
 
-    if (linkError) throw linkError;
-
-    // The browser will redirect to the OAuth provider.
-
+    if (error) throw error;
+    // Supabase redirects the browser to the provider. After authorization,
+    // the user returns here and the identity list is refreshed.
   } catch (error) {
-    console.error("Identity linking error:", error);
+    console.error("Identity linking failed:", error);
+    const message = error.message || "Could not connect this provider.";
 
-    const message = error.message || "";
-
-    if (
-      /already linked|identity_already_exists|identity.*exists/i
-        .test(message)
-    ) {
+    if (/identity_already_exists|already linked|identity.*exists/i.test(message)) {
       alert(
-        "This Google or Discord identity may already " +
-        "belong to another CloudSync account.\n\n" +
-        "No account data has been merged or changed.\n\n" +
-        "To merge accounts, both accounts must be " +
-        "verified through a separate secure process."
+        "This provider is already linked to another CloudSync account.\n\n" +
+        "Your accounts and notes have NOT been merged or changed.\n\n" +
+        "Sign in to the other account separately before attempting an approved account merge."
       );
     } else {
-      toast(message || "Could not connect this account.");
+      toast(message);
     }
 
     await loadConnectedIdentities();
-
   } finally {
-    await loadConnectedIdentities();
+    if (button && !button.classList.contains("hidden")) {
+      button.disabled = false;
+      if (!button.innerHTML || button.innerHTML.includes("Connecting securely")) {
+        button.innerHTML = originalMarkup;
+      }
+    }
   }
 }
 
-
 connectGoogleIdentityButton?.addEventListener(
   "click",
-  () => connectIdentity(
-    "google",
-    connectGoogleIdentityButton
-  )
+  () => connectIdentity("google", connectGoogleIdentityButton)
 );
 
 connectDiscordIdentityButton?.addEventListener(
   "click",
-  () => connectIdentity(
-    "discord",
-    connectDiscordIdentityButton
-  )
+  () => connectIdentity("discord", connectDiscordIdentityButton)
+);
+
+refreshConnectedIdentitiesButton?.addEventListener(
+  "click",
+  loadConnectedIdentities
 );
 
 $("openSettings").addEventListener("click", openSettings);
