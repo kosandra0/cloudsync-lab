@@ -106,6 +106,35 @@
           </form>
         </div>
       </section>
+      
+<section class="setting-card" id="connectedAccountsCard">
+  <div class="setting-kicker">MULTI-PROVIDER AUTHENTICATION</div>
+
+  <div class="setting-title">
+    <span class="setting-icon">⇄</span>
+    <h3>Connected accounts</h3>
+  </div>
+
+  <p>
+    Connect multiple login methods to one CloudSync account.
+    All connected providers will access the same notes and data.
+  </p>
+
+  <div id="connectedIdentityList" class="connected-identity-list">
+    <span class="muted-small">Loading connected accounts...</span>
+  </div>
+
+  <div class="provider-link-actions">
+    <button id="connectGoogleIdentity" class="google-btn" type="button">
+      Continue with Google
+    </button>
+
+    <button id="connectDiscordIdentity" class="discord-btn" type="button">
+      Continue with Discord
+    </button>
+  </div>
+</section>
+
     </div>
     <p class="settings-footnote"><strong>Important:</strong> Passkeys provide passwordless sign-in. Authenticator-app TOTP is the actual second factor in this demo. When you successfully enable TOTP, Supabase signs out your other active sessions; you may need to sign in again on your other devices.</p>
   </section>
