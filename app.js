@@ -152,7 +152,6 @@ function showApp(user) {
   $("authView").classList.add("hidden");
   $("mfaView").classList.add("hidden");
   $("appView").classList.remove("hidden");
-  $("settingsPanel").classList.add("hidden");
   $("accountEmail").textContent = user.email || "Signed-in user";
   $("avatar").textContent = (user.email || "U")[0].toUpperCase();
   loadNotes();
