@@ -61,3 +61,19 @@ Do not use your important passwords or store sensitive personal information in t
 ## Security scope
 
 This is a learning demo, not a production-ready application. It intentionally stores only simple text notes. Before a public launch, add abuse protection, privacy disclosures, operational monitoring, and a reviewed account/data deletion process.
+
+
+## Passkey sign-in
+
+CloudSync Lab includes Supabase Passkey support (currently experimental in `supabase-js`).
+
+- Passkey support is opted into when the Supabase client is created.
+- A user must first be signed in with a confirmed email account before registering a passkey.
+- After registration, the user can sign out and choose **Sign in with a passkey**.
+- Users can view and remove their own passkeys from the signed-in workspace.
+- The website must be opened on its HTTPS GitHub Pages origin.
+- Keep the WebAuthn Relying Party ID stable. For this site it is `kosandra0.github.io`; the allowed origin is `https://kosandra0.github.io`.
+
+Passkeys are device/authenticator credentials, not passwords stored in this app. The app never receives a user's fingerprint, face scan, or device PIN.
+
+See the [Supabase Passkey documentation](https://supabase.com/docs/guides/auth/passkeys) for current API status and browser requirements.
