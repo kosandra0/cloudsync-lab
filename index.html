@@ -35,24 +35,71 @@
       <span class="passkey-symbol" aria-hidden="true">⌘</span>
       <span>Sign in with a passkey</span>
     </button>
+    <p class="passkey-hint">First time here? Sign in with email or Google, then add a passkey in Settings → Security.</p>
     <div class="switch"><span id="switchText">New to CloudSync Lab?</span> <button id="switchMode" type="button">Create an account</button></div>
     <p class="fine">Use a test account and a unique password. Do not save sensitive information in this demo.</p>
   </div>
 </section>
+<section id="mfaView" class="auth-layout hidden">
+  <div class="intro">
+    <div class="eyebrow">SECOND LAYER SECURITY</div>
+    <h1>One more<br><span>security check.</span></h1>
+    <p>Your account has authenticator-app verification enabled. Enter the current six-digit code from your authenticator app to finish signing in.</p>
+  </div>
+  <div class="panel auth-panel">
+    <div class="eyebrow">TWO-FACTOR VERIFICATION</div>
+    <h2>Verify it's you</h2>
+    <p>Open your authenticator app and enter the current code.</p>
+    <form id="mfaChallengeForm">
+      <label for="mfaFactorSelect">Authenticator</label>
+      <select id="mfaFactorSelect" class="field-select"></select>
+      <label for="mfaChallengeCode">6-digit verification code</label>
+      <input id="mfaChallengeCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
+      <button id="mfaVerifyButton" class="primary" type="submit">Verify and continue <span>→</span></button>
+    </form>
+    <button id="mfaSignOut" class="quiet mfa-signout" type="button">Sign out instead</button>
+    <p class="fine">Codes refresh every 30 seconds. Check your phone's clock if a code is rejected.</p>
+  </div>
+</section>
 <section id="appView" class="app hidden">
-  <div class="welcome"><div><div class="eyebrow">YOUR PRIVATE WORKSPACE</div><h1>Your cloud notes</h1><p>Saved notes are linked to your signed-in account.</p></div><button id="signOut" class="quiet">Sign out</button></div>
+  <div class="welcome"><div><div class="eyebrow">YOUR PRIVATE WORKSPACE</div><h1>Your cloud notes</h1><p>Saved notes are linked to your signed-in account.</p></div><div class="welcome-actions"><button id="openSettings" class="quiet" type="button">⚙ Settings</button><button id="signOut" class="quiet" type="button">Sign out</button></div></div>
   <div class="account"><span class="avatar" id="avatar">U</span><span><small>SIGNED IN AS</small><b id="accountEmail">—</b></span><span class="sync" id="syncLabel">Connected</span></div>
-  <section class="panel passkey-panel" aria-labelledby="passkeyHeading">
-    <div class="passkey-copy">
-      <div class="eyebrow">PASSWORDLESS SIGN-IN</div>
-      <h2 id="passkeyHeading">Passkeys on your devices</h2>
-      <p>Register a passkey on this device to sign in later with its fingerprint, face unlock, PIN or screen lock.</p>
-      <button id="addPasskey" class="primary passkey-add" type="button">＋ Register a passkey</button>
+  <section id="settingsPanel" class="panel settings-panel hidden" aria-labelledby="settingsHeading">
+    <div class="settings-header">
+      <div><div class="eyebrow">ACCOUNT PREFERENCES</div><h2 id="settingsHeading">Settings & security</h2><p>Manage how you sign in and protect your account.</p></div>
+      <button id="closeSettings" class="quiet" type="button">Close ×</button>
     </div>
-    <div class="passkey-manage">
-      <div class="passkey-list-heading">Your registered passkeys</div>
-      <div id="passkeyList" class="passkey-list"><span class="muted-small">Loading passkeys…</span></div>
+    <div class="settings-grid">
+      <section class="setting-card">
+        <div class="setting-kicker">PASSWORDLESS SIGN-IN</div>
+        <div class="setting-title"><span class="setting-icon">⌘</span><h3>Passkeys</h3></div>
+        <p>Use Windows Hello, a phone, a password manager or a compatible security key to sign in without typing your password. A passkey is an alternative sign-in method, not an extra MFA step after a password.</p>
+        <button id="addPasskey" class="primary passkey-add" type="button">＋ Register a passkey</button>
+        <div class="passkey-list-heading">Passkeys registered to your account</div>
+        <div id="passkeyList" class="passkey-list"><span class="muted-small">Loading passkeys…</span></div>
+      </section>
+      <section class="setting-card">
+        <div class="setting-kicker">SECOND LAYER SECURITY</div>
+        <div class="setting-title"><span class="setting-icon">✳</span><h3>Authenticator app (2FA)</h3></div>
+        <p>Require a six-digit, time-based code from an authenticator app after the usual email/password or Google sign-in.</p>
+        <div id="totpStatus" class="security-status">Checking your two-factor settings…</div>
+        <div id="totpFactorList" class="totp-factor-list"></div>
+        <button id="startTotp" class="primary totp-start" type="button">＋ Set up authenticator app</button>
+        <div id="totpEnrollment" class="totp-enrollment hidden">
+          <div class="totp-qr-wrap"><img id="totpQr" alt="Authenticator setup QR code"></div>
+          <p class="totp-instructions">Scan this QR code with Google Authenticator, Microsoft Authenticator, 1Password or another TOTP app. Then enter the six-digit code it generates.</p>
+          <label for="totpSecret">Manual setup key</label>
+          <div id="totpSecret" class="totp-secret"></div>
+          <form id="totpVerifyForm">
+            <label for="totpVerifyCode">Authenticator code</label>
+            <input id="totpVerifyCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
+            <button id="verifyTotpButton" class="primary" type="submit">Verify and enable 2FA <span>→</span></button>
+            <button id="cancelTotp" class="quiet" type="button">Cancel setup</button>
+          </form>
+        </div>
+      </section>
     </div>
+    <p class="settings-footnote"><strong>Important:</strong> Passkeys provide passwordless sign-in. Authenticator-app TOTP is the actual second factor in this demo. When you successfully enable TOTP, Supabase signs out your other active sessions; you may need to sign in again on your other devices.</p>
   </section>
   <div class="workspace">
     <section class="panel editor"><div class="eyebrow">CLOUD NOTE</div><h2 id="editorTitle">Create a note</h2><p>Write something and save it to your account.</p>
