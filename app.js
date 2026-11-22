@@ -21,6 +21,7 @@ function setMode(next) {
   $("switchText").textContent = mode === "signin" ? "New to CloudSync Lab?" : "Already registered?";
   $("switchMode").textContent = mode === "signin" ? "Create an account" : "Sign in instead";
   $("password").autocomplete = mode === "signin" ? "current-password" : "new-password";
+  if (passkeySignInButton) passkeySignInButton.classList.toggle("hidden", mode === "signup");
 }
 $("switchMode").addEventListener("click", () => setMode(mode === "signin" ? "signup" : "signin"));
 
@@ -206,6 +207,15 @@ $("addPasskey").addEventListener("click", async () => {
   if (!client || !currentUser) return toast("Sign in before registering a passkey.");
   if (!window.isSecureContext || !navigator.credentials) {
     return toast("Passkeys require a compatible browser on this HTTPS website.");
+  }
+  if (/Windows/i.test(navigator.userAgent) &&
+      window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+    try {
+      const available = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!available) {
+        return toast("Windows Hello is not available yet. Open Windows Settings → Accounts → Sign-in options → PIN (Windows Hello), set up a PIN, then register again. You can also register a passkey on your phone.");
+      }
+    } catch (_) {}
   }
   const button = $("addPasskey");
   button.disabled = true;
