@@ -31,6 +31,10 @@
       </svg>
       <span>Continue with Google</span>
     </button>
+    <button id="passkeySignIn" class="passkey-btn" type="button">
+      <span class="passkey-symbol" aria-hidden="true">⌘</span>
+      <span>Sign in with a passkey</span>
+    </button>
     <div class="switch"><span id="switchText">New to CloudSync Lab?</span> <button id="switchMode" type="button">Create an account</button></div>
     <p class="fine">Use a test account and a unique password. Do not save sensitive information in this demo.</p>
   </div>
@@ -38,6 +42,18 @@
 <section id="appView" class="app hidden">
   <div class="welcome"><div><div class="eyebrow">YOUR PRIVATE WORKSPACE</div><h1>Your cloud notes</h1><p>Saved notes are linked to your signed-in account.</p></div><button id="signOut" class="quiet">Sign out</button></div>
   <div class="account"><span class="avatar" id="avatar">U</span><span><small>SIGNED IN AS</small><b id="accountEmail">—</b></span><span class="sync" id="syncLabel">Connected</span></div>
+  <section class="panel passkey-panel" aria-labelledby="passkeyHeading">
+    <div class="passkey-copy">
+      <div class="eyebrow">PASSWORDLESS SIGN-IN</div>
+      <h2 id="passkeyHeading">Passkeys on your devices</h2>
+      <p>Register a passkey on this device to sign in later with its fingerprint, face unlock, PIN or screen lock.</p>
+      <button id="addPasskey" class="primary passkey-add" type="button">＋ Register a passkey</button>
+    </div>
+    <div class="passkey-manage">
+      <div class="passkey-list-heading">Your registered passkeys</div>
+      <div id="passkeyList" class="passkey-list"><span class="muted-small">Loading passkeys…</span></div>
+    </div>
+  </section>
   <div class="workspace">
     <section class="panel editor"><div class="eyebrow">CLOUD NOTE</div><h2 id="editorTitle">Create a note</h2><p>Write something and save it to your account.</p>
       <form id="noteForm"><label for="noteTitle">Title</label><input id="noteTitle" maxlength="100" placeholder="My first cloud note" required>
