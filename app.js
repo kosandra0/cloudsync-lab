@@ -81,7 +81,7 @@ $("mfaChallengeForm").addEventListener("submit", async (event) => {
   if (!client) return;
   const factorId = $("mfaFactorSelect").value;
   const code = $("mfaChallengeCode").value.trim();
-  if (!factorId || !/^\\d{6}$/.test(code)) return toast("Enter the current six-digit authenticator code.");
+  if (!factorId || !/^\d{6}$/.test(code)) return toast("Enter the current six-digit authenticator code.");
   const button = $("mfaVerifyButton");
   button.disabled = true; button.textContent = "Verifying…";
   try {
@@ -253,7 +253,7 @@ $("totpVerifyForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!client || !pendingTotpFactorId) return;
   const code = $("totpVerifyCode").value.trim();
-  if (!/^\\d{6}$/.test(code)) return toast("Enter the current six-digit code from your authenticator app.");
+  if (!/^\d{6}$/.test(code)) return toast("Enter the current six-digit code from your authenticator app.");
   const button = $("verifyTotpButton");
   button.disabled = true; button.textContent = "Verifying…";
   try {
