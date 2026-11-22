@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d1219"><title>CloudSync Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.118.0'"></script>
+</head>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div>
+<main class="shell">
+<header><a class="brand" href="./"><span class="mark">↗</span>CloudSync <b>Lab</b></a><span class="tag"><i></i> Supabase learning project</span></header>
+<section id="authView" class="auth-layout">
+  <div class="intro"><div class="eyebrow">YOUR FIRST CLOUD EXPERIMENT</div><h1>Your notes.<br><span>Every device.</span></h1>
+  <p>Create an account, save a note on one device, then sign in on another device to see it appear. This is separate from Piano Logger.</p>
+  <div class="steps"><div><b>01</b><span><strong>Sign in</strong><small>Use the same account on both devices</small></span></div><div><b>02</b><span><strong>Save a note</strong><small>Your note is stored in Supabase</small></span></div><div><b>03</b><span><strong>Open another device</strong><small>Retrieve the same note from the cloud</small></span></div></div></div>
+  <div class="panel auth-panel"><div class="eyebrow">CLOUDSYNC ACCOUNT</div><h2 id="authTitle">Welcome back</h2><p id="authSubtitle">Sign in to access your private notes.</p>
+    <div id="connectionNotice" class="notice hidden"></div>
+    <form id="authForm"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+    <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters" minlength="8" required>
+    <button id="authSubmit" class="primary" type="submit">Sign in <span>→</span></button></form>
+    <div class="switch"><span id="switchText">New to CloudSync Lab?</span> <button id="switchMode" type="button">Create an account</button></div>
+    <p class="fine">Use a test account and a unique password. Do not save sensitive information in this demo.</p>
+  </div>
+</section>
+<section id="appView" class="app hidden">
+  <div class="welcome"><div><div class="eyebrow">YOUR PRIVATE WORKSPACE</div><h1>Your cloud notes</h1><p>Saved notes are linked to your signed-in account.</p></div><button id="signOut" class="quiet">Sign out</button></div>
+  <div class="account"><span class="avatar" id="avatar">U</span><span><small>SIGNED IN AS</small><b id="accountEmail">—</b></span><span class="sync" id="syncLabel">Connected</span></div>
+  <div class="workspace">
+    <section class="panel editor"><div class="eyebrow">CLOUD NOTE</div><h2 id="editorTitle">Create a note</h2><p>Write something and save it to your account.</p>
+      <form id="noteForm"><label for="noteTitle">Title</label><input id="noteTitle" maxlength="100" placeholder="My first cloud note" required>
+      <label for="noteBody">Message</label><textarea id="noteBody" rows="7" maxlength="5000" placeholder="This note should appear when I sign in from my phone..." required></textarea>
+      <div class="actions"><button id="saveNote" class="primary" type="submit">Save to cloud <span>↑</span></button><button id="cancelEdit" class="quiet hidden" type="button">Cancel</button></div></form>
+      <div class="privacy">◇ Your notes are private to your account through database security policies.</div>
+    </section>
+    <section class="notes"><div class="notes-head"><div><div class="eyebrow">SYNCHRONIZED DATA</div><h2>Saved notes <span id="noteCount">0</span></h2></div><button id="refreshNotes" class="refresh" type="button" title="Refresh">↻</button></div><div id="notesList" class="note-list"><div class="empty"><b>No notes yet</b><p>Create your first note. It will appear here and on your other devices.</p></div></div></section>
+  </div>
+  <div class="tip"><b>Test synchronization:</b> Keep this account signed in on your PC, open the same website on your phone, and sign in with the same account.</div>
+</section>
+<footer><span>CloudSync Lab · Independent learning sandbox</span><span>Built with Supabase</span></footer>
+</main><div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="./app.js"></script>
+</body></html>
