@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#0d1219"><title>CloudSync Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./styles.css?v=20261122-identity-fix1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.118.0'"></script>
 </head>
 <body>
@@ -107,35 +107,60 @@
         </div>
       </section>
       
-<section class="setting-card" id="connectedAccountsCard">
-  <div class="setting-kicker">MULTI-PROVIDER AUTHENTICATION</div>
 
-  <div class="setting-title">
-    <span class="setting-icon">⇄</span>
-    <h3>Connected accounts</h3>
-  </div>
-
-  <p>
-    Connect multiple login methods to one CloudSync account.
-    All connected providers will access the same notes and data.
-  </p>
-
-  <div id="connectedIdentityList" class="connected-identity-list">
-    <span class="muted-small">Loading connected accounts...</span>
-  </div>
-
-  <div class="provider-link-actions">
-    <button id="connectGoogleIdentity" class="google-btn" type="button">
-      Continue with Google
-    </button>
-
-    <button id="connectDiscordIdentity" class="discord-btn" type="button">
-      Continue with Discord
-    </button>
-  </div>
-</section>
 
     </div>
+
+    <section class="panel connected-accounts-panel" id="connectedAccountsCard" aria-labelledby="connectedAccountsHeading">
+      <div class="connected-accounts-header">
+        <div>
+          <div class="setting-kicker">MULTI-PROVIDER AUTHENTICATION</div>
+          <h3 id="connectedAccountsHeading">Connected accounts</h3>
+          <p>Manage the sign-in providers attached to this CloudSync account.</p>
+        </div>
+        <button id="refreshConnectedIdentities" class="quiet identity-refresh" type="button" aria-label="Refresh connected accounts" title="Refresh connected accounts">↻ Refresh</button>
+      </div>
+
+      <div class="connected-accounts-grid">
+        <section class="connected-accounts-column" aria-labelledby="connectedProvidersHeading">
+          <div class="connection-column-heading">
+            <h4 id="connectedProvidersHeading">Connected providers</h4>
+            <p>These providers all open the same account and notes.</p>
+          </div>
+          <div id="connectedIdentityStatus" class="identity-status" role="status" aria-live="polite">Checking your connected accounts…</div>
+          <div id="connectedIdentityList" class="connected-identity-list"></div>
+        </section>
+
+        <section class="connected-accounts-column link-more-column" aria-labelledby="linkMoreHeading">
+          <div class="connection-column-heading">
+            <h4 id="linkMoreHeading">Link more accounts</h4>
+            <p>Add another sign-in method to this account. You must authorize it with the provider.</p>
+          </div>
+          <div class="provider-link-actions">
+            <button id="connectGoogleIdentity" class="identity-link-btn google-identity-btn" type="button">
+              <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.91c-.58 2.96-2.26 5.47-4.76 7.16l7.73 6C44.39 37.8 46.98 31.7 46.98 24.55z"/>
+                <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.88-5.82l-7.73-6c-2.14 1.44-4.89 2.3-8.15 2.3-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+              <span>Connect Google</span>
+              <span class="identity-button-arrow" aria-hidden="true">→</span>
+            </button>
+
+            <button id="connectDiscordIdentity" class="identity-link-btn discord-identity-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M19.73 5.34A19.4 19.4 0 0 0 14.9 3.85l-.59 1.2a18 18 0 0 0-4.62 0l-.6-1.2a19.3 19.3 0 0 0-4.83 1.49C1.2 9.86.37 14.29.78 18.65a19.5 19.5 0 0 0 5.92 2.99l1.28-2.09a12.6 12.6 0 0 1-2.02-.97l.5-.39a13.9 13.9 0 0 0 13.08 0l.5.39c-.65.39-1.33.72-2.03.97l1.28 2.09a19.5 19.5 0 0 0 5.92-2.99c.49-5.06-.84-9.45-3.48-13.31ZM8.73 15.51c-1.14 0-2.08-1.05-2.08-2.34s.92-2.34 2.08-2.34 2.1 1.06 2.08 2.34c0 1.29-.92 2.34-2.08 2.34Zm6.54 0c-1.14 0-2.08-1.05-2.08-2.34s.92-2.34 2.08-2.34 2.1 1.06 2.08 2.34c0 1.29-.91 2.34-2.08 2.34Z"/>
+              </svg>
+              <span>Connect Discord</span>
+              <span class="identity-button-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+          <div id="noMoreProviders" class="no-more-providers hidden">All currently supported social providers are already connected.</div>
+          <p class="identity-help">A provider that is already attached to a different CloudSync account cannot be linked here automatically. No account data is merged by this action.</p>
+        </section>
+      </div>
+    </section>
     <p class="settings-footnote"><strong>Important:</strong> Passkeys provide passwordless sign-in. Authenticator-app TOTP is the actual second factor in this demo. When you successfully enable TOTP, Supabase signs out your other active sessions; you may need to sign in again on your other devices.</p>
   </section>
   <div class="workspace">
@@ -151,5 +176,5 @@
 </section>
 <footer><span>CloudSync Lab · Independent learning sandbox</span><span>Built with Supabase</span></footer>
 </main><div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="./app.js"></script>
+<script src="./app.js?v=20261122-identity-fix1"></script>
 </body></html>
