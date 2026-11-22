@@ -2,6 +2,8 @@
 
 A small, independent learning project demonstrating Supabase Auth, PostgreSQL, Row Level Security (RLS), and cross-device note synchronization. It is not connected to Piano Logger.
 
+**Website:** _https://kosandra0.github.io/cloudsync-lab/_
+
 ## Files
 
 - `index.html` — responsive login and notes interface
