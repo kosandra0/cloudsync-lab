@@ -73,6 +73,47 @@ if (googleSignInButton) {
 }
 
 
+// Discord OAuth authentication
+const discordSignInButton = $("discordSignIn");
+
+if (discordSignInButton) {
+  discordSignInButton.addEventListener("click", async () => {
+    if (!client) {
+      return toast("Supabase connection unavailable.");
+    }
+
+    discordSignInButton.disabled = true;
+    discordSignInButton.innerHTML = "Connecting to Discord...";
+
+    try {
+      const redirectTo =
+        window.location.origin + window.location.pathname;
+
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "discord",
+        options: {
+          redirectTo,
+          scopes: "identify email"
+        }
+      });
+
+      if (error) throw error;
+
+    } catch (error) {
+      console.error("Discord OAuth error:", error);
+
+      toast(error.message || "Discord login failed.");
+
+      discordSignInButton.disabled = false;
+      discordSignInButton.innerHTML = `
+        Continue with Discord
+      `;
+    }
+  });
+}
+
+
+
 let pendingMfaFactors = [];
 let pendingTotpFactorId = null;
 let authRenderVersion = 0;
