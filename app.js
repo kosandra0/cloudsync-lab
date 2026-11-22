@@ -22,7 +22,30 @@ function setMode(next) {
 }
 $("switchMode").addEventListener("click", () => setMode(mode === "signin" ? "signup" : "signin"));
 
+const googleSignInButton = $("googleSignIn");
+const googleButtonMarkup = googleSignInButton ? googleSignInButton.innerHTML : "";
+if (googleSignInButton) {
+  googleSignInButton.addEventListener("click", async () => {
+    if (!client) return toast("Supabase is unavailable. Refresh the page and try again.");
+    googleSignInButton.disabled = true;
+    googleSignInButton.textContent = "Connecting to Google…";
+    try {
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo }
+      });
+      if (error) throw error;
+    } catch (e) {
+      toast(e.message || "Google sign-in could not be started.");
+      googleSignInButton.disabled = false;
+      googleSignInButton.innerHTML = googleButtonMarkup;
+    }
+  });
+}
+
 if (!client) {
+  if (googleSignInButton) googleSignInButton.disabled = true;
   $("connectionNotice").classList.remove("hidden");
   $("connectionNotice").textContent = "The Supabase browser library did not load. Check your internet connection or try another network. The account form is available, but cloud login cannot work until the library loads.";
   $("authSubtitle").textContent = "Cloud connection is not ready.";
