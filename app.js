@@ -1,0 +1,116 @@
+// CloudSync Lab — browser-safe Supabase configuration.
+const SUPABASE_URL = "https://rrlfnghoxocplelqigdc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_j1cAUpJiW1hqJcKDD9Kk7Q_0jOaV7o6";
+const client = window.supabase && typeof window.supabase.createClient === "function"
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+  : null;
+const $ = (id) => document.getElementById(id);
+let mode = "signin", currentUser = null, editingId = null, channel = null, toastTimer;
+
+function toast(message) {
+  const el = $("toast"); el.textContent = message; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 4000);
+}
+function setMode(next) {
+  mode = next;
+  $("authTitle").textContent = mode === "signin" ? "Welcome back" : "Create your account";
+  $("authSubtitle").textContent = mode === "signin" ? "Sign in to access your private notes." : "Register with your email and a unique password.";
+  $("authSubmit").innerHTML = mode === "signin" ? 'Sign in <span>→</span>' : 'Create account <span>→</span>';
+  $("switchText").textContent = mode === "signin" ? "New to CloudSync Lab?" : "Already registered?";
+  $("switchMode").textContent = mode === "signin" ? "Create an account" : "Sign in instead";
+  $("password").autocomplete = mode === "signin" ? "current-password" : "new-password";
+}
+$("switchMode").addEventListener("click", () => setMode(mode === "signin" ? "signup" : "signin"));
+
+if (!client) {
+  $("connectionNotice").classList.remove("hidden");
+  $("connectionNotice").textContent = "The Supabase browser library did not load. Check your internet connection or try another network. The account form is available, but cloud login cannot work until the library loads.";
+  $("authSubtitle").textContent = "Cloud connection is not ready.";
+}
+$("authForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!client) return toast("Supabase library unavailable. Refresh the page or try another network.");
+  const btn = $("authSubmit"), email = $("email").value.trim(), password = $("password").value;
+  btn.disabled = true; btn.textContent = mode === "signin" ? "Signing in…" : "Creating account…";
+  try {
+    if (mode === "signup") {
+      const redirect = location.protocol === "https:" ? location.href.split("#")[0] : undefined;
+      const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: redirect } });
+      if (error) throw error;
+      toast(data.session ? "Account created and signed in." : "Account created. Check your email to confirm, then sign in.");
+    } else {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast("Signed in successfully.");
+    }
+  } catch (e) { toast(e.message || "Authentication failed."); }
+  finally { btn.disabled = false; btn.innerHTML = mode === "signin" ? 'Sign in <span>→</span>' : 'Create account <span>→</span>'; }
+});
+$("signOut").addEventListener("click", async () => {
+  if (!client) return;
+  const { error } = await client.auth.signOut(); if (error) toast(error.message);
+});
+$("refreshNotes").addEventListener("click", loadNotes);
+$("cancelEdit").addEventListener("click", resetEditor);
+$("noteForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!client || !currentUser) return toast("Please sign in first.");
+  const btn = $("saveNote"), payload = { user_id: currentUser.id, title: $("noteTitle").value.trim(), body: $("noteBody").value.trim(), updated_at: new Date().toISOString() };
+  if (!payload.title || !payload.body) return toast("Enter both a title and message.");
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    const result = editingId
+      ? await client.from("cloud_notes").update(payload).eq("id", editingId)
+      : await client.from("cloud_notes").insert(payload);
+    if (result.error) throw result.error;
+    resetEditor(); await loadNotes(); toast("Saved to Supabase.");
+  } catch (e) { toast(e.message || "Could not save note."); }
+  finally { btn.disabled = false; btn.innerHTML = "Save to cloud <span>↑</span>"; }
+});
+function resetEditor() {
+  editingId = null; $("noteForm").reset(); $("editorTitle").textContent = "Create a note";
+  $("cancelEdit").classList.add("hidden"); $("saveNote").innerHTML = "Save to cloud <span>↑</span>";
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function dateLabel(s) { return new Intl.DateTimeFormat(undefined,{dateStyle:"medium",timeStyle:"short"}).format(new Date(s)); }
+async function loadNotes() {
+  if (!client || !currentUser) return;
+  $("syncLabel").textContent = "Syncing…";
+  const { data, error } = await client.from("cloud_notes").select("id,title,body,created_at,updated_at").order("updated_at",{ascending:false});
+  if (error) { $("syncLabel").textContent = "Sync issue"; toast(error.message); return; }
+  $("syncLabel").textContent = "Cloud connected"; $("noteCount").textContent = data.length;
+  const list = $("notesList");
+  if (!data.length) { list.innerHTML = '<div class="empty"><b>No notes yet</b><p>Create your first note. It will appear here and on your other devices.</p></div>'; return; }
+  list.innerHTML = data.map(n => '<article class="note-card"><h3>'+esc(n.title)+'</h3><p>'+esc(n.body)+'</p><div class="note-meta"><span>Updated '+esc(dateLabel(n.updated_at))+'</span><span class="note-actions"><button data-edit="'+n.id+'">Edit</button><button class="delete" data-delete="'+n.id+'">Delete</button></span></div></article>').join("");
+  list.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => {
+    const n = data.find(x => x.id === b.dataset.edit); editingId = n.id;
+    $("noteTitle").value = n.title; $("noteBody").value = n.body; $("editorTitle").textContent = "Edit note";
+    $("saveNote").innerHTML = "Update note <span>↑</span>"; $("cancelEdit").classList.remove("hidden");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }));
+  list.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Delete this note permanently?")) return;
+    const { error } = await client.from("cloud_notes").delete().eq("id",b.dataset.delete);
+    if (error) toast(error.message); else { await loadNotes(); toast("Note deleted."); }
+  }));
+}
+function signedIn(user) {
+  currentUser = user; $("authView").classList.add("hidden"); $("appView").classList.remove("hidden");
+  $("accountEmail").textContent = user.email || "Signed-in user"; $("avatar").textContent = (user.email || "U")[0].toUpperCase();
+  loadNotes();
+  if (channel) client.removeChannel(channel);
+  channel = client.channel("notes-"+user.id).on("postgres_changes",{event:"*",schema:"public",table:"cloud_notes",filter:"user_id=eq."+user.id},loadNotes).subscribe();
+}
+function signedOut() {
+  currentUser = null; if (channel && client) client.removeChannel(channel); channel = null;
+  $("appView").classList.add("hidden"); $("authView").classList.remove("hidden");
+}
+if (client) {
+  client.auth.onAuthStateChange((_event, session) => session?.user ? signedIn(session.user) : signedOut());
+  client.auth.getSession().then(({data,error}) => {
+    if (error) toast(error.message);
+    if (data.session?.user) signedIn(data.session.user); else signedOut();
+  });
+} else {
+  signedOut();
+}
